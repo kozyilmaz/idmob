@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Marketplace for IoT Data Vendors</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <link rel="stylesheet" href="custom.css">
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script src="w3contractCall.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.12/js/jquery.dataTables.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.12/css/jquery.dataTables.css">
+  <script type="text/javascript">
+
+    $(document).ready(function() {
+    // initialize table
+      var t = $('#example').DataTable({
+          paging:   false,
+          bFilter: false, 
+          bInfo: false,
+          ordering:false
+      });
+      
+      // add row
+      $('#addRow').click(function () {
+          //t.row.add( [1,2,3] ).draw();
+          var rowHtml = $("#newRow").find("tr")[0].outerHTML
+          console.log(rowHtml);
+          t.row.add($(rowHtml)).draw();
+      });
+
+      $('#register').click(function () {
+          var fromAdress = $("#fromAdress").val() ;
+          var password = $("#pass").val();
+          var sensors = t.$('input[name=sensor]').serializeArray().map(function (value) { return value.value });
+          var prices = t.$('input[name=price]').serializeArray().map(function (value) { return value.value });
+          var prefix = $("#vendorPrefix").val();
+          //function(fromaddr,password,prefix,sensors,costs)
+          regVendor(fromAdress,password,prefix,sensors,prices);
+      });
+
+   
+    });
+ 
+    //sensor_data_push (address vendor_address, uint sensor_type, string schema, uint timestamp, string spatial, string swarm)
+
+    function pushData(){
+      var fromAdress = $("#fromAdress").val() ;
+      var password = $("#pass").val();
+      var sensor_type = $("#typeOfData").val();
+      var schema = $("#schema").val();
+      var timestamp = $("#timestamp").val();
+      var spatial = $("#spatial").val();
+      var swarm = $("#swarm").val();
+      dataPush(fromAdress,password,sensor_type,schema,timestamp,spatial,swarm);
+    }
+
+    function listSensors(){
+      var fromAdress = $("#fromAdress").val() ;
+      var password = $("#pass").val();
+      var list = getSensorsList(fromAdress,password);
+      if(list.length>0){
+        $("#vendorCurrentList").empty();
+        $("#vendorCurrentList").append("<table id=\"tblCurr\" class=\"table\"><tr><th>Sensor Type</th><th>Price</th></tr></table>");
+        $.each(list,function(){
+           $("#tblCurr").append("<tr><td>"+ this[0] +"</td><td>" + this[1] + "</td></tr>");
+        });
+      
+      }
+      
+    } 
+
+</script>
+
+</head>
+<body>
+<nav class="navbar navbar-default">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="index.html">IOT DATA MARKET</a>
+    </div>
+    <ul class="nav navbar-nav">
+      <li><a href="index.html">Home</a></li>
+      <li class="active"><a href="vendor.html">Vendor</a></li>
+    </ul>
+  </div>
+</nav>
+
+ 
+
+<div class=”container-fluid”>
+<div class="form-group" style="margin: 0px 10px" >
+  <label for="usr">Address:</label>
+  <input type="text" id= "fromAdress" class="form-control" >
+</div>
+<div class="form-group" style="margin: 10px 10px">
+  <label for="pwd">Password:</label>
+  <input type="password" class="form-control" id= "pass">
+</div>
+</div>
+ 
+<div class="container-fluid">
+  <div id="vendorRegistration" class="col-md-12 weird">
+    <h2   style="margin-left: 42%" >Vendor Register </h2>
+    <input type="text" id="vendorPrefix" placeholder="Prefix">
+    <table id="example" class="display" cellspacing="0" width="100%">
+    <thead>
+      <tr>
+        <th>Sensor</th>
+        <th>Price</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><input type="text" name="sensor"/> </td>
+        <td><input type="text" name="price"/> </td>
+      </tr>
+    </tbody>
+  </table>
+  <br/>
+  <button id="addRow">Add New Row</button>
+
+  <table id="newRow">
+    <tbody>
+      <tr >
+        <td><input type="text" name="sensor"/> </td>
+        <td><input type="text" name="price"/> </td>
+      </tr>
+    </tbody>
+  </table>
+   <button  class="centerButton btn bigButton"  id="register"> Test Vendor </button>
+  </div>
+</div>
+
+
+<div class="container-fluid">
+  <div id="vendorPush">
+  <h2   style="margin-left: 42%" > Vendor Data Push </h2>
+    <input type="text" id="typeOfData" placeholder="Sensor Type">
+    <input type="text" id="schema" placeholder="Schema definition">
+    <input type="text" id="timestamp" placeholder="Timestamp">
+    <input type="text" id="spatial" placeholder="Spatial Data">
+    <input type="text" id="swarm" placeholder="Swarm">
+    <button  class="centerButton btn bigButton"  onclick="pushData()"> Push Data </button>
+
+  </div>
+</div>
+
+<div class="container-fluid">
+  <div id="divVendor">
+      <h2   style="margin-left: 42%" >Vendor Sensors </h2>
+
+    <button  class="centerButton btn bigButton"  onclick="listSensors()"> Show Current Sensors-Prices </button>
+    <div id="vendorCurrentList">
+    </div>
+  </div>
+</div>
+
+
+  
+
+
+<p id="status"></p>
+
+</body>
+</html>

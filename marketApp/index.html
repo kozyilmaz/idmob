@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Marketplace for IoT Data Vendors</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script src="w3contractCall.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.12/js/jquery.dataTables.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.12/css/jquery.dataTables.css">
+  <link rel="stylesheet" href="custom.css">
+  <script type="text/javascript">
+
+    function getVendLen(){
+      var fromAdress = $("#fromAdress").val() ;
+      var password = $("#pass").val();
+      getVendorLength(fromAdress,password);
+    }
+
+
+    function searchSensor(){
+      var fromAdress = $("#fromAdress").val() ;
+      var password = $("#pass").val();
+      var sensor_type= $("#sensorID").val();
+      var list = querySensor(fromAdress,password,sensor_type);
+      //console.log(list);
+      //console.log(list[0]);
+      //console.log(list[1]);
+      //<button  class="centerButton btn bigButton"  onclick="searchSensor()"> Query Sensor </button>
+      if(list.length>0){
+        $("#divQuerySensorAdd").empty();
+        $("#divQuerySensorAdd").append("<table id=\"tblResultVendor\" class=\"table\"><tr><th>Vendor Addresses</th><th>Sensor Type</th></tr>");  
+        var count=1;
+        $.each(list,function(){
+           $("#tblResultVendor").append("<tr><td>"+ this +"</td><td>" + $("#sensorID").val() + "</td><td><button onclick=\"pullData("+ count +")\"> Check </button></td></tr>");
+          //$("#resultSet").append("<li>" + this +"</li>");
+          count++;
+        });
+      $("#divQuerySensor").append("</table>");
+      }
+    }
+    
+    //sensor_data_pull (address vendor_address, uint sensor_type, uint index)
+
+    function pullData(x){
+      console.log(x);
+      var selectedRow = ($('#tblResultVendor tr').eq(x));
+      var vendor_address = (selectedRow.find('td:eq(0)').text());
+      var sensor_type = (selectedRow.find('td:eq(1)').text());
+      var fromAdress = $("#fromAdress").val() ;
+      var password = $("#pass").val();
+      var dataList = dataPull(fromAdress,password,vendor_address,sensor_type);
+
+      $.each(dataList,function(){
+        $("#divQueryCheck").append("<p>" + this[0] + " -- " + this[1].toNumber() 
+                                    + " -- " + this[2] + " -- " + this[3] +  "</p>");
+      });
+    }
+
+
+
+
+
+//
+
+</script>
+
+</head>
+<body>
+<nav class="navbar navbar-default">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="index.html">IOT DATA MARKET</a>
+    </div>
+    <ul class="nav navbar-nav">
+      <li class="active"><a href="index.html">Home</a></li>
+      <li><a href="vendor.html">Vendor</a></li>
+    </ul>
+  </div>
+</nav>
+
+ 
+
+<div class=”container-fluid”>
+<div class="form-group" style="margin: 0px 10px" >
+  <label for="usr">Address:</label>
+  <input type="text" id= "fromAdress" class="form-control" >
+</div>
+<div class="form-group" style="margin: 10px 10px">
+  <label for="pwd">Password:</label>
+  <input type="password" class="form-control" id= "pass">
+</div>
+</div>
+ 
+<div class="container-fluid">
+  <div id="divVendor" class="col-md-12 weird">
+    <h2 style="margin-left: 42%" >Get Vendor Length </h2>
+   <button  class="centerButton btn bigButton"  onclick="getVendLen()"> Test Get Length </button>
+  </div>
+</div>
+
+
+<div class="container-fluid">
+  <div id="divQuerySensor" class="col-md-12">
+    <h2 style="margin-left: 42%" >Query Sensor Test </h2>
+      <input type="text" class="form-control" id= "sensorID">
+   <button  class="centerButton btn bigButton"  onclick="searchSensor()"> Query Sensor </button>
+  </div>
+  <div id="divQuerySensorAdd" class="col-md-12">
+    
+  </div>
+
+  <div id="divQueryCheck" class="col-md-12">
+    
+  </div>
+
+  <ul id="resultSet">
+  </ul>
+
+</div>
+
+
+
+<!-- 
+ 
+<div class="container-fluid">
+  <div id="divListProposal" class="col-md-12 weird">
+  <table id="tblProposals" class="table" >
+  <tr>
+<th>Link of Description</th>
+<th>Vote Count</th>
+<th>Proposal ID</th>
+<th>Amount Of Service</th>
+<th>Voting End Date</th>
+<th>Count of Yes Votes</th>
+<th>Vote Yes</th>
+<th>Vote No</th>
+</tr>
+  </table>
+ 
+</div>
+</div>
+ 
+ -->
+ 
+ 
+
+
+<p id="status"></p>
+
+</body>
+</html>

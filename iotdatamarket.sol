@@ -70,7 +70,7 @@ contract iotdatamarket {
     }
 
     /// @dev Get total vendors registered on market
-    /// @result returns total count of vendors 
+    /// @return returns total count of vendors 
     function vendor_length () public view returns (uint length) {
         return vendor_arr.length;
     }
@@ -96,8 +96,6 @@ contract iotdatamarket {
         if (vendor_map[vendor_address].devices[msg.sender] != true){
             return false;
         }
-        /* TODO if no element is touched payloads[] could not be resolved */
-        vendor_map[vendor_address].prefix = vendor_map[vendor_address].prefix;
         vendor_map[vendor_address].payloads[sensor_type].push(payload(timestamp,swarm,schema,spatial));
         return true;
     }
@@ -106,7 +104,7 @@ contract iotdatamarket {
     /// @param sensor_type Numeric representation of corresponding sensor_type
     /// @param index iteration number for vendor_list
     function query_sensor (uint sensor_type, uint index) public view returns (address result) {
-        require(!vendor_map[vendor_arr[index]].types[sensor_type] || vendor_map[vendor_arr[index]].payloads[sensor_type].length == 0);
+        require(vendor_map[vendor_arr[index]].types[sensor_type] && vendor_map[vendor_arr[index]].payloads[sensor_type].length > 0);
         return vendor_arr[index];
     }
 
@@ -123,23 +121,20 @@ contract iotdatamarket {
     }
 
     function pay_for_data (address vendor_address, uint sensor_type, uint index) public payable returns (string swarm) {
-        if (msg.value < vendor_map[vendor_address].prices[sensor_type]) {
-            revert();
-        } else {
-            // more control statements?
+        require(vendor_map[vendor_address].prices[sensor_type]>msg.value);
+        if(vendor_address.send(msg.value)){
             customer_map[msg.sender].paid_arr.push((vendor_map[vendor_address].payloads[sensor_type])[index]);
             customer_map[msg.sender].vote_map_used[vendor_address] = true;
-            if(vendor_address.send(msg.value)){
-                return (vendor_map[vendor_address].payloads[sensor_type])[index].swarm;
-            }
-            else{
-                revert();
-            }
+            return (vendor_map[vendor_address].payloads[sensor_type])[index].swarm;
         }
+        else{
+            revert();
+        }
+        
     }
 
     function vote_for_vendor (address vendor_address,uint vote) public returns (bool) {
-        if (customer_map[msg.sender].vote_map_used[vendor_address] == true) {
+        if (customer_map[msg.sender].vote_map_used[vendor_address]) {
             if (vote == 1) {
                 vendor_map[vendor_address].votes += 1;
             } else if (vote == 0 && vendor_map[vendor_address].votes > 0) {
@@ -169,12 +164,12 @@ contract iotdatamarket {
         }
     }
 
-    /* constructor */
+    /// @dev constructor 
     function iotdatamarket() public {
         creator = msg.sender;
     }
 
-    /* kills contract and sends remaining funds back to creator */
+    /// @dev kills contract and sends remaining funds back to creator 
     function kill() public {
         if (msg.sender == creator) {
             selfdestruct(creator);

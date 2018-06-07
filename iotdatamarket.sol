@@ -16,7 +16,7 @@ contract iotdatamarket {
         string spatial;
         uint key_index;
         EncryptionScheme encryption_scheme;
-        string encryptedKey;
+        string encrypted_key;
     }
 
     /* everything about vendors */
@@ -37,7 +37,7 @@ contract iotdatamarket {
     struct customer{
         payload[] paid_arr;
         mapping(address => bool) vote_map_used;
-        string pubKey;
+        string pub_key;
     }
 
     mapping(address => vendor) private vendor_map;
@@ -73,13 +73,13 @@ contract iotdatamarket {
     }
     
     /// @dev Registers a customer to marketplace 
-    /// @param _pubKey Customer's public key which is required to key exchange between parties  
+    /// @param _pub_key Customer's public key which is required to key exchange between parties  
     /// @return address of registered customer if succesfull
     
-    function customer_register (string _pubKey) public returns (address) {
+    function customer_register (string _pub_key) public returns (address) {
         // check if customer is already registered .
-        require(bytes(customer_map[msg.sender].pubKey).length == 0);
-        customer_map[msg.sender].pubKey = _pubKey;
+        require(bytes(customer_map[msg.sender].pub_key).length == 0);
+        customer_map[msg.sender].pub_key = _pub_key;
         return msg.sender;
     }
     
@@ -152,13 +152,13 @@ contract iotdatamarket {
     /// @param sensor_type Sensor type which data belongs to
     /// @param index Position of asked payload in array
     /// @return returns address of the vendor if payloadRequest event is succesfully requested
-    function request_for_data (address vendor_address, uint sensor_type, uint index) public payable returns (address) {
+    function request_for_data (address vendor_address, uint sensor_type, uint index) public returns (address) {
         uint sensor_price = vendor_map[vendor_address].prices[sensor_type];
         require(sensor_price<=balances[msg.sender]);
         //customer_map[msg.sender].paid_arr.push((vendor_map[vendor_address].payloads[sensor_type])[index]);
         customer_map[msg.sender].vote_map_used[vendor_address] = true;
         //return (vendor_map[vendor_address].payloads[sensor_type])[index].swarm;
-        emit payloadRequest(msg.sender,vendor_address,sensor_type,index,sensor_price);
+        emit payloadRequest(msg.sender,vendor_address,customer_map[msg.sender].pub_key,sensor_type,index);
         return vendor_address;
         
     }
@@ -166,18 +166,19 @@ contract iotdatamarket {
     event payloadRequest(
         address indexed _from,
         address indexed _to,
+        string pub_key,
         uint sensor_type,
-        uint index,
-        uint price
+        uint index
     );
     
-    function transferKeyAndData(string decKey,address _to, uint _price, uint sensor_type, uint index)public returns(string){
+    function transferKeyAndData(string dec_key,address _to, uint sensor_type, uint index)public returns(string){
+        uint _price = vendor_map[msg.sender].prices[sensor_type];
         require(balances[_to]>=_price);
         balances[_to]-= _price;
         balances[msg.sender] += _price;
-        (vendor_map[msg.sender].payloads[sensor_type])[index].encryptedKey=decKey;
+        (vendor_map[msg.sender].payloads[sensor_type])[index].encrypted_key=dec_key;
         customer_map[_to].paid_arr.push((vendor_map[msg.sender].payloads[sensor_type])[index]);
-        return decKey;
+        return dec_key;
     }
     
     

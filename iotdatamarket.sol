@@ -158,12 +158,12 @@ contract iotdatamarket {
         //customer_map[msg.sender].paid_arr.push((vendor_map[vendor_address].payloads[sensor_type])[index]);
         customer_map[msg.sender].vote_map_used[vendor_address] = true;
         //return (vendor_map[vendor_address].payloads[sensor_type])[index].swarm;
-        emit payloadRequest(msg.sender,vendor_address,customer_map[msg.sender].pub_key,sensor_type,index);
+        emit payload_request(msg.sender,vendor_address,customer_map[msg.sender].pub_key,sensor_type,index);
         return vendor_address;
         
     }
     
-    event payloadRequest(
+    event payload_request(
         address indexed _from,
         address indexed _to,
         string pub_key,
@@ -171,7 +171,7 @@ contract iotdatamarket {
         uint index
     );
     
-    function transferKeyAndData(string dec_key,address _to, uint sensor_type, uint index)public returns(string){
+    function transfer_key_and_data(string dec_key,address _to, uint sensor_type, uint index)public returns(string){
         uint _price = vendor_map[msg.sender].prices[sensor_type];
         require(balances[_to]>=_price);
         balances[_to]-= _price;

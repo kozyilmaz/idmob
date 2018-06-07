@@ -170,6 +170,15 @@ contract iotdatamarket {
         uint sensor_type,
         uint index
     );
+
+    event payload_response(
+        address indexed _from,
+        address indexed _to,
+        string dec_key,
+        uint sensor_type,
+        uint index,
+        string swarm
+    );
     
     function transfer_key_and_data(string dec_key,address _to, uint sensor_type, uint index)public returns(string){
         uint _price = vendor_map[msg.sender].prices[sensor_type];
@@ -178,6 +187,7 @@ contract iotdatamarket {
         balances[msg.sender] += _price;
         (vendor_map[msg.sender].payloads[sensor_type])[index].encrypted_key=dec_key;
         customer_map[_to].paid_arr.push((vendor_map[msg.sender].payloads[sensor_type])[index]);
+        emit payload_response(msg.sender,_to,dec_key, sensor_type,index,(vendor_map[msg.sender].payloads[sensor_type])[index].swarm);
         return dec_key;
     }
     

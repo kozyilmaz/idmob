@@ -1,15 +1,22 @@
 pragma solidity ^0.4.19;
 
 contract iotdatamarket {
+    
+    enum EncryptionScheme { DES, DES3,  AES128, AES256 }
     /* contract owner */
     address private creator;
 
+
     /* payload from a specific sensor type */
     struct payload {
+        address device_id;
         uint timestamp;
         string swarm;
         string schema;
         string spatial;
+        uint key_index;
+        EncryptionScheme encryption_scheme;
+        string encryptedKey;
     }
 
     /* everything about vendors */
@@ -30,12 +37,23 @@ contract iotdatamarket {
     struct customer{
         payload[] paid_arr;
         mapping(address => bool) vote_map_used;
+        string pubKey;
     }
 
     mapping(address => vendor) private vendor_map;
     mapping(address => customer) private customer_map;
     address[] private vendor_arr;
+    mapping(address => uint) balances;
 
+    function getEncryptionScheme(uint _encID) private pure returns (EncryptionScheme){
+        if(_encID==0) return EncryptionScheme.DES;
+        if(_encID==1) return EncryptionScheme.DES3;
+        if(_encID==2) return EncryptionScheme.AES128;
+        if(_encID==3) return EncryptionScheme.AES256;
+        revert();
+    }
+    
+    
     /// @dev Registers a vendor to marketplace to be able to list their sensor_data_push
     /// @param prefix Symbol for vendor which is shown on marketplace
     /// @param sensors list of sensor types vendor will publish on marketplace
@@ -53,6 +71,18 @@ contract iotdatamarket {
         vendor_arr.push(msg.sender);
         return msg.sender;
     }
+    
+    /// @dev Registers a customer to marketplace 
+    /// @param _pubKey Customer's public key which is required to key exchange between parties  
+    /// @return address of registered customer if succesfull
+    
+    function customer_register (string _pubKey) public returns (address) {
+        // check if customer is already registered .
+        require(bytes(customer_map[msg.sender].pubKey).length == 0);
+        customer_map[msg.sender].pubKey = _pubKey;
+        return msg.sender;
+    }
+    
 
     /// @dev Add devices address that can push data on behalf of vendor
     /// @param device_address Address of the device that allowed to push data 
@@ -83,9 +113,9 @@ contract iotdatamarket {
     /// @param timestamp Time when data is pushed on swarm
     /// @param spatial Geolocation of device where the data is pushed
     /// @param swarm url of the content on swarm  
-    function sensor_data_push (address vendor_address, uint sensor_type, string schema, uint timestamp, string spatial, string swarm) public returns (address) {
+    function sensor_data_push (address vendor_address, uint sensor_type, string schema, uint timestamp, string spatial, string swarm,uint key_index, uint _encID ) public returns (address) {
         require(vendor_map[vendor_address].types[sensor_type] && vendor_map[vendor_address].devices[msg.sender]);
-        vendor_map[vendor_address].payloads[sensor_type].push(payload(timestamp,swarm,schema,spatial));
+        vendor_map[vendor_address].payloads[sensor_type].push(payload(msg.sender,timestamp,swarm,schema,spatial,key_index, getEncryptionScheme(_encID),""));
         return vendor_address;
     }
 
@@ -121,19 +151,52 @@ contract iotdatamarket {
     /// @param vendor_address Address of the vendor 
     /// @param sensor_type Sensor type which data belongs to
     /// @param index Position of asked payload in array
-    /// @return url of swarm file handle
-        function pay_for_data (address vendor_address, uint sensor_type, uint index) public payable returns (string swarm) {
-        require(vendor_map[vendor_address].prices[sensor_type]<msg.value);
-        if(vendor_address.send(msg.value)){
-            customer_map[msg.sender].paid_arr.push((vendor_map[vendor_address].payloads[sensor_type])[index]);
-            customer_map[msg.sender].vote_map_used[vendor_address] = true;
-            return (vendor_map[vendor_address].payloads[sensor_type])[index].swarm;
-        }
-        else{
-            revert();
-        }
+    /// @return returns address of the vendor if payloadRequest event is succesfully requested
+    function request_for_data (address vendor_address, uint sensor_type, uint index) public payable returns (address) {
+        uint sensor_price = vendor_map[vendor_address].prices[sensor_type];
+        require(sensor_price<=balances[msg.sender]);
+        //customer_map[msg.sender].paid_arr.push((vendor_map[vendor_address].payloads[sensor_type])[index]);
+        customer_map[msg.sender].vote_map_used[vendor_address] = true;
+        //return (vendor_map[vendor_address].payloads[sensor_type])[index].swarm;
+        emit payloadRequest(msg.sender,vendor_address,sensor_type,index,sensor_price);
+        return vendor_address;
         
     }
+    
+    event payloadRequest(
+        address indexed _from,
+        address indexed _to,
+        uint sensor_type,
+        uint index,
+        uint price
+    );
+    
+    function transferKeyAndData(string decKey,address _to, uint _price, uint sensor_type, uint index)public returns(string){
+        require(balances[_to]>=_price);
+        balances[_to]-= _price;
+        balances[msg.sender] += _price;
+        (vendor_map[msg.sender].payloads[sensor_type])[index].encryptedKey=decKey;
+        customer_map[_to].paid_arr.push((vendor_map[msg.sender].payloads[sensor_type])[index]);
+        return decKey;
+    }
+    
+    
+    function deposit() payable public returns (bool) {
+        balances[msg.sender] += msg.value;
+        return true;
+    }
+    
+    
+    /// Consensys Smart Contract Best Practices
+    function withdraw() public {
+        uint amountToWithdraw = balances[msg.sender];
+        balances[msg.sender] = 0;
+        require(msg.sender.call.value(amountToWithdraw)()); 
+        
+    }
+    
+    
+    
 
     /// @dev Provides functionality for basic voting mechanism by letting payers to evaluate vendors
     /// @param vendor_address Address of the vendor 
@@ -166,9 +229,12 @@ contract iotdatamarket {
             return vendor_map[msg.sender].prices[sensor_type_index];
         }
     }
-
+    
+    /// @dev fallback function that accepts ether to be sent to the contract 
+    function () public payable {}
+    
     /// @dev constructor 
-    function iotdatamarket() public {
+    constructor() public {
         creator = msg.sender;
     }
 
